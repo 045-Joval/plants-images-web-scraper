@@ -32,6 +32,9 @@ def image_download(search_string):
             pass
     try:
         os.mkdir(os.path.join(os.getcwd(),'plants-images'))
+    except:
+        pass
+    try:
         os.mkdir(os.path.join(os.getcwd(),'plants-images',search_string))
     except:
         pass
