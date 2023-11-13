@@ -1,40 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>Plant Image Scraper</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plant Image Scraper</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Plant Image Scraper</h1>
-    <form id="imageForm">
-        <label for="query">Plant Name:</label>
-        <input type="text" id="query" required>
+<h1>Plant Image Scraper</h1>
+<form id="imageForm">
+  <div class="row1">
+    <div class="column1">
+      <!--      <label for="query">Plant Name:</label>-->
+      <input placeholder="Search for a plant" type="text" id="query" required>
+    </div>
+    <div class="column2">
+      <button type="button" onclick="getImages()">Get Images</button>
+      <!--      <button type="button" onclick="cancelRequest()">Cancel</button>-->
+    </div>
+  </div>
+  <div class="row2">
+    <div class="columns">
+      <label for="licenseType">License Type</label>
+      <select id="licenseType">
+        <option value="0">Any</option>
+        <option value="1">Creative Commons</option>
+        <option value="2">Commercial</option>
+      </select>
+    </div>
+    <div class="columns">
+      <label for="numOfImages">Number of Images</label>
+      <input type="number" min="1" value="2" id="numOfImages" required>
+    </div>
+    <div class="columns">
+      <label for="imageHeight">Image Height</label>
+      <input type="number" min="100" value="300" id="imageHeight" required>
+    </div>
+    <div class="columns">
+      <label for="imageWidth">Image Width:</label>
+      <input type="number" min="100" value="400" id="imageWidth" required>
+    </div>
+  </div>
+</form>
 
-        <label for="licenseType">License Type:</label>
-        <select id="licenseType">
-            <option value="0">Any</option>
-            <option value="1">Creative Commons</option>
-            <option value="2">Commercial reuse with modification</option>
-        </select>
-
-        <label for="numOfImages">Number of Images:</label>
-        <input type="number" min="1" id="numOfImages" required>
-
-        <label for="imageWidth">Image Width:</label>
-        <input type="number" min="1" id="imageWidth" required>
-
-        <label for="imageHeight">Image Height:</label>
-        <input type="number" min="1" id="imageHeight" required>
-
-        <button type="button" onclick="getImages()">Get Images</button>
-        <button type="button" onclick="cancelRequest()">Cancel</button>
-    </form>
-
-    <div id="loading">Loading...</div>
-    <div id="result"></div>
-    <script src="script.js"></script>
+<div id="loading">
+  <!--  Loading...-->
+</div>
+<div id="result"></div>
 </body>
+<script>
+    let controller = null; // Variable to store the AbortController instance
+
+    function getImages() {
+        const query = document.getElementById('query').value;
+        const licenseType = document.getElementById('licenseType').value;
+        const numOfImages = document.getElementById('numOfImages').value;
+        const imageWidth = document.getElementById('imageWidth').value;
+        const imageHeight = document.getElementById('imageHeight').value;
+
+        // Abort the existing request if it exists
+        if (controller) {
+            controller.abort();
+        }
+
+        // Create a new AbortController instance
+        controller = new AbortController();
+
+        // Show loading animation
+        document.getElementById('loading').style.display = 'block';
+
+        // Clear the existing images
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '';
+
+        // Fetch new images
+        fetch('http://127.0.0.1:5000/api/getimages', {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query,
+                license_type: parseInt(licenseType),
+                number_of_images: parseInt(numOfImages),
+                image_width: parseInt(imageWidth),
+                image_height: parseInt(imageHeight),
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        const imgElement = document.createElement('img');
+                        imgElement.src = `${item[0]}`//?${Date.now()}`; // Append a unique query parameter to the image URL
+                        imgElement.alt = 'Image';
+                        resultDiv.appendChild(imgElement);
+
+                        const jsonLink = document.createElement('a');
+                        jsonLink.href = item[1]; // JSON path
+                        jsonLink.target = '_blank';
+                        resultDiv.appendChild(jsonLink);
+
+                        resultDiv.appendChild(document.createElement('br'));
+                    });
+                } else {
+                    resultDiv.innerText = 'No images found.';
+                }
+
+                // Hide loading animation
+                document.getElementById('loading').style.display = 'none';
+
+                // Clear the query
+                document.getElementById('query').value = ""
+
+            })
+            .catch(error => {
+                // Check if the error is due to the request being aborted
+                if (error.name !== 'AbortError') {
+                    console.error('Error:', error);
+                }
+
+                // Hide loading animation in case of an error
+                document.getElementById('loading').style.display = 'none';
+            });
+    }
+
+
+    function cancelRequest() {
+        // Abort the request if it exists
+        if (controller) {
+            controller.abort();
+            controller = null;
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+</script>
+
 </html>
