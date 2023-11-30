@@ -42,7 +42,9 @@ def image_download(search_string, license_type, num_of_images, image_size):
         try:
             json_data_needed = list(json.loads(test)[0][0].values())[0][1]
             images_url.append(json_data_needed[3][0])
-            image_license_details.append(json_data_needed[25])
+            license_data = max(json_data_needed[25].values(),key=len)
+            filtered_data = [x for x in license_data if x not in (None, False, True)]
+            image_license_details.append(filtered_data)
         except:
             pass
 
